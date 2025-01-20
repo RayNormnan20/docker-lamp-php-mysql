@@ -1,0 +1,53 @@
+version: "3.1"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: dbname
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"  # Permite acceso sin contraseña
+    volumes:
+      - ./dump:/docker-entrypoint-initdb.d  # Dump inicial
+      - ./conf:/etc/mysql/conf.d  # Configuración extra
+      - mysql_data:/var/lib/mysql  # Persistencia de MySQL
+    networks:
+      - my_network
+
+  www:
+    build: .
+    container_name: apache_php
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./www:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - my_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      PMA_HOST: db  # Conectar a MySQL sin contraseña
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    depends_on:
+      - db
+    networks:
+      - my_network
+
+volumes:
+  mysql_data:  # Volumen persistente para MySQL
+    driver: local
+
+networks:
+  my_network:
+    driver: bridge
